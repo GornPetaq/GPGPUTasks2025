@@ -29,6 +29,7 @@ void reportError(cl_int err, const std::string &filename, int line)
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
 
 int main()
+try
 {
 	// Пытаемся слинковаться с символами OpenCL API в runtime (через библиотеку libs/clew)
 	if(!ocl_init())
@@ -55,6 +56,7 @@ int main()
 		// Не забывайте проверять коды ошибок с помощью макроса OCL_SAFE_CALL
 		size_t platformNameSize = 0;
 		OCL_SAFE_CALL(clGetPlatformInfo(platform, CL_PLATFORM_NAME, 0, nullptr, &platformNameSize));
+		// OCL_SAFE_CALL(clGetPlatformInfo(platform, 239, 0, nullptr, &platformNameSize));
 		// TODO 1.1
 		// Попробуйте вместо CL_PLATFORM_NAME передать какое-нибудь случайное число - например 239
 		// Т.к. это некорректный идентификатор параметра платформы - то метод вернет код ошибки
@@ -92,4 +94,9 @@ int main()
 	}
 
 	return 0;
+}
+
+catch (std::exception& e) {
+	std::cerr << e.what();
+	std::terminate();
 }
