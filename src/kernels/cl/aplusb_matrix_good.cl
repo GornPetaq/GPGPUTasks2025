@@ -19,7 +19,7 @@ __kernel void aplusb_matrix_good(__global const uint* a,
     const unsigned int i = get_global_id(0);
     const unsigned int j = get_global_id(1);
 
-    const id = j * width + i;
+    const unsigned int id = j * width + i;
     if (id >= width * height)
         return;
 
