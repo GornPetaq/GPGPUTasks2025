@@ -14,8 +14,8 @@ __kernel void aplusb_matrix_good(__global const uint* a,
     const unsigned int i = get_global_id(0);
     const unsigned int j = get_global_id(1);
 
-    if (i >= width || j >= height)
-        return;
+    // if (i >= width || j >= height)
+        // return;
 
     // все три массива - линейно выложенные двумерные матрицы размера width (число столбиков) x height (число рядов)
     // при этом в памяти подряд идут элементы являющимися соседями в рамках одного ряда,
@@ -24,5 +24,10 @@ __kernel void aplusb_matrix_good(__global const uint* a,
     // т.е. если в матрице сделать шаг вверх или вниз на одну ячейку - то в памяти мы шагнем на так называемый stride=width*4 байта
 
     // TODO реализуйте этот кернел - просуммируйте две матрицы так чтобы получить максимально ХОРОШУЮ производительность с точки зрения memory coalesced паттерна доступа
-    c[j * width + i] = a[j * width + i] + b[j * width + i];
-}
+    // c[j * width + i] = a[j * width + i] + b[j * width + i];
+
+    const id = j * width + i;
+    if (id >= width * height) return;
+
+    c[i] = a[i] + b[i];
+ }

@@ -74,14 +74,14 @@ void run(int argc, char** argv)
             // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
             if (context.type() == gpu::Context::TypeOpenCL) {
                 ocl_aplusb_matrix_bad.exec(workSize, a_gpu, b_gpu, c_gpu, width, height);
-            } else if (context.type() == gpu::Context::TypeCUDA) {
-                cuda::aplusb_matrix_bad(workSize, a_gpu, b_gpu, c_gpu, width, height);
-            } else if (context.type() == gpu::Context::TypeVulkan) {
-                struct {
-                    unsigned int width;
-                    unsigned int height;
-                } params = { width, height };
-                vk_aplusb_matrix_bad.exec(params, workSize, a_gpu, b_gpu, c_gpu);
+                // } else if (context.type() == gpu::Context::TypeCUDA) {
+                // cuda::aplusb_matrix_bad(workSize, a_gpu, b_gpu, c_gpu, width, height);
+                // } else if (context.type() == gpu::Context::TypeVulkan) {
+                //     struct {
+                //         unsigned int width;
+                //         unsigned int height;
+                //     } params = { width, height };
+                //     vk_aplusb_matrix_bad.exec(params, workSize, a_gpu, b_gpu, c_gpu);
             } else {
                 rassert(false, 4531412341, context.type());
             }
@@ -119,14 +119,14 @@ void run(int argc, char** argv)
             // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
             if (context.type() == gpu::Context::TypeOpenCL) {
                 ocl_aplusb_matrix_good.exec(workSize, a_gpu, b_gpu, c_gpu, width, height);
-            } else if (context.type() == gpu::Context::TypeCUDA) {
-                cuda::aplusb_matrix_good(workSize, a_gpu, b_gpu, c_gpu, width, height);
-            } else if (context.type() == gpu::Context::TypeVulkan) {
-                struct {
-                    unsigned int width;
-                    unsigned int height;
-                } params = { width, height };
-                vk_aplusb_matrix_good.exec(params, workSize, a_gpu, b_gpu, c_gpu);
+                // } else if (context.type() == gpu::Context::TypeCUDA) {
+                // cuda::aplusb_matrix_good(workSize, a_gpu, b_gpu, c_gpu, width, height);
+            // } else if (context.type() == gpu::Context::TypeVulkan) {
+            //     struct {
+            //         unsigned int width;
+            //         unsigned int height;
+            //     } params = { width, height };
+            //     vk_aplusb_matrix_good.exec(params, workSize, a_gpu, b_gpu, c_gpu);
             } else {
                 rassert(false, 4531412341, context.type());
             }
