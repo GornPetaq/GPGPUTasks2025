@@ -12,12 +12,6 @@ __global__ void aplusb_matrix_good(const unsigned int* a,
                              unsigned int  width,
                              unsigned int  height)
 {
-    const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (i >= width || j >= height)
-        return;
-
     // все три массива - линейно выложенные двумерные матрицы размера width (число столбиков) x height (число рядов)
     // при этом в памяти подряд идут элементы являющимися соседями в рамках одного ряда,
     // т.е. матрица выложена в памяти линейно ряд за рядом
@@ -25,7 +19,6 @@ __global__ void aplusb_matrix_good(const unsigned int* a,
     // т.е. если в матрице сделать шаг вверх или вниз на одну ячейку - то в памяти мы шагнем на так называемый stride=width*4 байта
 
     // TODO реализуйте этот кернел - просуммируйте две матрицы так чтобы получить максимально ХОРОШУЮ производительность с точки зрения memory coalesced паттерна доступа
-    c[j * width + i] = a[j * width + i] + b[j * width + i];
 }
 
 namespace cuda {

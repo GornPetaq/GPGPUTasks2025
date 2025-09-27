@@ -42,6 +42,7 @@ inline size_t dataSize(DataType type) {
 	if (type == DataType32i || type == DataType32u || type == DataType32f)  return 4;
 	if (type == DataType64i || type == DataType64u || type == DataType64f)  return 8;
 	throwUnsupportedDataType(type);
+        return 0; // fallback to silence -Wreturn-type
 }
 
 template <typename T>	class DataTypeTraits					{ public:	static DataType type() { return DataTypeUndefined;	} };

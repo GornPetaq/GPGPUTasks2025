@@ -1,4 +1,0 @@
-1) Download and install clang:
-    https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-win64.exe
-2) Add to CMake options (to use clang as a preprocessor for OpenCL kernels):
-    -DSPIR_CLANG_BIN="C:\Program Files\LLVM\bin\clang.exe"

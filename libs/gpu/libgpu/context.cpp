@@ -7,6 +7,7 @@
 #ifdef CUDA_SUPPORT
 #include <libgpu/cuda/utils.h>
 #include <libgpu/cuda/cuda_api.h>
+#include <cuda_runtime_api.h>
 #endif
 
 namespace gpu {
@@ -213,7 +214,7 @@ void Context::activate()
 			CU_SAFE_CALL( cuDeviceGet(&device, data_ref_->cuda_device) );
 
                         int computeMode = 9999;
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 13000)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
                         CU_SAFE_CALL( cuDeviceGetAttribute(&computeMode, CU_DEVICE_ATTRIBUTE_COMPUTE_MODE, device) );
 #else
                         // CUDA <= 12.x: keep old runtime field
@@ -235,7 +236,7 @@ void Context::activate()
 
 			CUresult err;
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 13000)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
                         // CUDA 13+: new signature with CUctxCreateParams
                         CUctxCreateParams params{};
                         CUDA_TRACE(err = cuCtxCreate(&data_ref_->cuda_context, &params, 0, device));

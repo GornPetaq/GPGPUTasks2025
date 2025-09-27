@@ -21,7 +21,8 @@ void run(int argc, char** argv)
     gpu::Device device = gpu::chooseGPUDevice(gpu::selectAllDevices(ALL_GPUS, true), argc, argv);
 
     // TODO 100 сделайте здесь свой выбор API - если он отличается от OpenCL то в этой строке нужно заменить TypeOpenCL на TypeCUDA или TypeVulkan
-    // TODO 100 если вы выбрали CUDA - не забудьте установить CUDA SDK и добавить -DCUDA_SUPPORT=ON в CMake options
+    // TODO 100 после этого реализуйте два кернела - максимально эффективный и максимально неэффктивный вариант сложения матриц - src/kernels/<ваш выбор>/aplusb_matrix_<bad/good>.<ваш выбор>
+    // TODO 100 P.S. если вы выбрали CUDA - не забудьте установить CUDA SDK и добавить -DCUDA_SUPPORT=ON в CMake options
     gpu::Context context = activateContext(device, gpu::Context::TypeOpenCL);
     // OpenCL - рекомендуется как вариант по умолчанию, можно выполнять на CPU
     // CUDA   - рекомендуется если у вас NVIDIA видеокарта, т.к. в таком случае вы сможете пользоваться профилировщиком (nsight-compute) и санитайзером (compute-sanitizer, это бывший cuda-memcheck)
@@ -40,24 +41,23 @@ void run(int argc, char** argv)
     unsigned int width = task_size * 256;
     unsigned int height = task_size * 128;
     std::cout << "matrices size: " << width << "x" << height << " = 3 * " << (sizeof(unsigned int) * width * height / 1024 / 1024) << " MB" << std::endl;
-    unsigned int n = width * height;
 
-    // TODO 101 удалите эту строку, она для того чтобы моя заготовка (не работающий код) не пыталась запуститься на CI
+    // TODO Удалите эту строку, она для того чтобы моя заготовка (не работающий код) не пыталась запуститься на CI
     // throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
 
-    std::vector<unsigned int> as(n, 0);
-    std::vector<unsigned int> bs(n, 0);
-    for (size_t i = 0; i < n; ++i) {
+    std::vector<unsigned int> as(width * height, 0);
+    std::vector<unsigned int> bs(width * height, 0);
+    for (size_t i = 0; i < width * height; ++i) {
         as[i] = 3 * (i + 5) + 7;
         bs[i] = 11 * (i + 13) + 17;
     }
 
     // Аллоцируем буферы в VRAM
-    gpu::gpu_mem_32u a_gpu(n), b_gpu(n), c_gpu(n);
+    gpu::gpu_mem_32u a_gpu(width * height), b_gpu(width * height), c_gpu(width * height);
 
     // Прогружаем входные данные по PCI-E шине: CPU RAM -> GPU VRAM
-    a_gpu.writeN(as.data(), n);
-    b_gpu.writeN(bs.data(), n);
+    a_gpu.writeN(as.data(), width * height);
+    b_gpu.writeN(bs.data(), width * height);
 
     {
         std::cout << "Running BAD matrix kernel..." << std::endl;
@@ -68,20 +68,15 @@ void run(int argc, char** argv)
             timer t;
 
             // Настраиваем размер рабочего пространства (n) и размер рабочих групп в этом рабочем пространстве (GROUP_SIZE=256)
-            gpu::WorkSize workSize(1, GROUP_SIZE, width, height);
+            // Обратите внимание что сейчас указана рабочая группа размера 1х1 в рабочем пространстве width x height, это не то что вы хотите
+            // TODO И в плохом и в хорошем кернеле рабочая группа обязана состоять из 256 work-items
+            gpu::WorkSize workSize(1, 1, width, height);
 
             // Запускаем кернел, с указанием размера рабочего пространства и передачей всех аргументов
             // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
+            // TODO раскомментируйте вызов вашего API и поправьте его
             if (context.type() == gpu::Context::TypeOpenCL) {
                 ocl_aplusb_matrix_bad.exec(workSize, a_gpu, b_gpu, c_gpu, width, height);
-                // } else if (context.type() == gpu::Context::TypeCUDA) {
-                // cuda::aplusb_matrix_bad(workSize, a_gpu, b_gpu, c_gpu, width, height);
-                // } else if (context.type() == gpu::Context::TypeVulkan) {
-                //     struct {
-                //         unsigned int width;
-                //         unsigned int height;
-                //     } params = { width, height };
-                //     vk_aplusb_matrix_bad.exec(params, workSize, a_gpu, b_gpu, c_gpu);
             } else {
                 rassert(false, 4531412341, context.type());
             }
@@ -90,16 +85,14 @@ void run(int argc, char** argv)
         }
         std::cout << "a + b matrix kernel times (in seconds) - " << stats::valuesStatsLine(times) << std::endl;
 
-        // Вычисляем достигнутую эффективную пропускную способность видеопамяти
-        double memory_size_gb = sizeof(unsigned int) * 3 * n / 1024.0 / 1024.0 / 1024.0;
-        std::cout << "a + b matrix kernel median VRAM bandwidth: " << memory_size_gb / stats::median(times) << " GB/s" << std::endl;
+        // TODO Удалите этот rassert - вычислите достигнутую эффективную пропускную способность видеопамяти
+        rassert(false, 54623414231);
 
-        // Считываем результат по PCI-E шине: GPU VRAM -> CPU RAM
-        std::vector<unsigned int> cs(n, 0);
-        c_gpu.readN(cs.data(), n);
+        // TODO Считываем результат по PCI-E шине: GPU VRAM -> CPU RAM
+        std::vector<unsigned int> cs(width * height, 0);
 
         // Сверяем результат
-        for (size_t i = 0; i < n; ++i) {
+        for (size_t i = 0; i < width * height; ++i) {
             rassert(cs[i] == as[i] + bs[i], 321418230421312512, cs[i], as[i] + bs[i], i);
         }
     }
@@ -119,14 +112,6 @@ void run(int argc, char** argv)
             // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
             if (context.type() == gpu::Context::TypeOpenCL) {
                 ocl_aplusb_matrix_good.exec(workSize, a_gpu, b_gpu, c_gpu, width, height);
-                // } else if (context.type() == gpu::Context::TypeCUDA) {
-                // cuda::aplusb_matrix_good(workSize, a_gpu, b_gpu, c_gpu, width, height);
-            // } else if (context.type() == gpu::Context::TypeVulkan) {
-            //     struct {
-            //         unsigned int width;
-            //         unsigned int height;
-            //     } params = { width, height };
-            //     vk_aplusb_matrix_good.exec(params, workSize, a_gpu, b_gpu, c_gpu);
             } else {
                 rassert(false, 4531412341, context.type());
             }
@@ -136,15 +121,15 @@ void run(int argc, char** argv)
         std::cout << "a + b matrix kernel times (in seconds) - " << stats::valuesStatsLine(times) << std::endl;
 
         // Вычисляем достигнутую эффективную пропускную способность видеопамяти
-        double memory_size_gb = sizeof(unsigned int) * 3 * n / 1024.0 / 1024.0 / 1024.0;
+        double memory_size_gb = sizeof(unsigned int) * 3 * width * height / 1024.0 / 1024.0 / 1024.0;
         std::cout << "a + b matrix kernel median VRAM bandwidth: " << memory_size_gb / stats::median(times) << " GB/s" << std::endl;
 
         // Считываем результат по PCI-E шине: GPU VRAM -> CPU RAM
-        std::vector<unsigned int> cs(n, 0);
-        c_gpu.readN(cs.data(), n);
+        std::vector<unsigned int> cs(width * height, 0);
+        c_gpu.readN(cs.data(), width * height);
 
         // Сверяем результат
-        for (size_t i = 0; i < n; ++i) {
+        for (size_t i = 0; i < width * height; ++i) {
             rassert(cs[i] == as[i] + bs[i], 321418230365731436, cs[i], as[i] + bs[i], i);
         }
     }
@@ -156,7 +141,7 @@ int main(int argc, char** argv)
         run(argc, argv);
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-        if (e.what() == std::string("Device doesn't support requested API")) {
+        if (e.what() == DEVICE_NOT_SUPPORT_API) {
             // Возвращаем exit code = 0 чтобы на CI не было красного крестика о неуспешном запуске из-за выбора CUDA API (его нет на процессоре - т.е. в случае CI на GitHub Actions)
             return 0;
         } else {

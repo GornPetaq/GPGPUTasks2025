@@ -7,11 +7,8 @@
 <details><summary>Локальный вывод</summary><p>
 
 <pre>
-$ ./enumDevices
-Number of OpenCL platforms: 1
-Platform #1/1
-    Platform name: 
-The command "./enumDevices" exited with 0.
+$ ./main_aplusb_matrix
+...
 </pre>
 
 </p></details>
@@ -25,11 +22,8 @@ The command "./enumDevices" exited with 0.
 <details><summary>Вывод Github CI</summary><p>
 
 <pre>
-$ ./enumDevices
-Number of OpenCL platforms: 1
-Platform #1/1
-    Platform name: 
-The command "./enumDevices" exited with 0.
+$ ./main_aplusb_matrix
+...
 </pre>
 
 </p></details>

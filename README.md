@@ -2,103 +2,68 @@
 
 [Остальные задания](https://github.com/GPGPUCourse/GPGPUTasks2025/).
 
-# Задание 0. Вводное.
+# Задание 1. A + B сложение матриц (*coalesced memory access*)
 
-[![Build Status](https://github.com/GPGPUCourse/GPGPUTasks2025/actions/workflows/cmake.yml/badge.svg?branch=task00&event=push)](https://github.com/GPGPUCourse/GPGPUTasks2025/actions/workflows/cmake.yml)
+[![Build Status](https://github.com/GPGPUCourse/GPGPUTasks2025/actions/workflows/cmake.yml/badge.svg?branch=task01&event=push)](https://github.com/GPGPUCourse/GPGPUTasks2025/actions/workflows/cmake.yml)
 
-Установка OpenCL-драйвера для процессора
+В этом задании вам предлагается выбрать API (OpenCL, CUDA или Vulkan) и попробовать написать два кернела поэлементного сложения двумерных матриц:
+
+1) один кернел максимально эффективный с точки зрения *coalesced memory access*
+2) и второй кернел - максимально неэффективный
+
+Таким образом хочется провести эксперимент и на практике проверить - а есть ли разница? И если есть - то насколько эта разница в достигнутой пропускной способности памяти заметна?
+
+Для примера в [исходном коде](/src/main_aplusb.cpp) уже реализованы кернелы сложения двух массивов на всех трех API ([OpenCL](src/kernels/cl/aplusb.cl), [CUDA](src/kernels/cu/aplusb.cu), [Vulkan](src/kernels/vk/aplusb.comp)).
+
+Установка зависимостей
 ========================================
 
-Установить OpenCL-драйвер для процессора полезно, даже если у вас есть видеокарта, т.к. на нем удобно тестировать приложение (драйвер видеокарты гораздо чаще может повиснуть вместе с ОС).
+Вам надо установить из соответствующей папки ```scripts/<моя OS>```:
 
-Windows
--------
+1) ```install_dependencies``` - Некоторые зависимости: googletest, для Windows и macOS - дополнительно clang.
+2) ```install_vulkan_sdk``` - Vulkan SDK. Даже если вы не будете писать на Vulkan, и если пропустите вероятные будущие домашние задания на Vulkan - проект не соберется без Vulkan SDK.
+3) *опционально* ```install_opencl_cpu_driver``` - OpenCL CPU драйвер на Linux (Intel драйвер, работает и на AMD CPU)
+4) *опционально* ```install_vulkan_cpu_driver``` - Vulkan CPU драйвер на Linux (проект mesa)
+5) *опционально* ```install_cuda_sdk``` - CUDA SDK, в случае если у вас NVIDIA и хотите писать на CUDA (рекомендуется), не забудьте после этого добавить в CMake options: ```-DGPU_CUDA_SUPPORT=ON```
 
-1. Откройте https://software.intel.com/content/www/us/en/develop/tools/opencl-cpu-runtime.html -> ```For Intel CPUs``` (для AMD тоже работает)
-2. Скачайте, если у вас нет прокси то с зеркала - [файл w_opencl_runtime_p_2025.2.0.768.exe](https://disk.yandex.ru/d/dlVbMoI3tsPZfw)
-3. Установите
-
-Linux (Рекомендуется Ubuntu 24.04)
-----------------------------------
-
-Выполните скрипт [install_intel_opencl.sh](/.github/scripts/install_intel_opencl.sh)
-
-Если в процессе запуска этого задания процессор не виден как допустимое OpenCL-устройство - создайте **Issue** в этом репозитории с перечислением:
-
- - Версия OS
- - Вывод команды ``ls /etc/OpenCL/vendors``
- - Если там в т.ч. есть ``intel64.icd`` файл - то его содержимое (это маленький текстовый файл)
-
-Установка OpenCL-драйвера для видеокарты
-========================================
-
-Windows
--------
-
-Поставьте драйвер стандартным образом - скачав инсталлятор с официального сайта вендора вашей видеокарты и установив.
-
-Linux
------
-
-NVidia: я предпочитаю скачивать ```.run```-файл с сайта NVIDIA и устанавливать через него
-
-AMD: [скачав](https://www.amd.com/en/support) и установив amdgpu-pro драйвер
+Если у вас возникли проблемы - обратитесь за помощью к департаменту технической поддержки в чате курса или заведите **Issue**.
 
 Проверка окружения и начало выполнения задания
 ==============================================
 
-Про работу под Windows см. в секции [Как работать под windows](#%D0%9A%D0%B0%D0%BA-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%B0%D1%82%D1%8C-%D0%BF%D0%BE%D0%B4-windows).
+Это инструкция с чистого листа, но если хотите и понимаете как, то вы можете продолжать работу в уже скачанном проекте - вам нужно будет переключится на ветку ```task01``` и внимательно посмотреть на шаг про CMake options.
 
 1. Сделайте fork этого репозитория
 2. ``git clone ВАШ_ФОРК_РЕПОЗИТОРИЯ``
 3. ``cd GPGPUTasks2025``
-4. ``git checkout task00``
+4. ``git checkout task01``
 5. ``mkdir build``
 6. ``cd build``
-7. ``cmake ..``
+7. Здесь возможны варианты:
+ 
+7.1. **Linux** - ```cmake -DGPU_CUDA_SUPPORT=ON .. ``` (или без ```-DGPU_CUDA_SUPPORT=ON```)
+
+7.2. **Windows** - укажите в CLion->File->Settings->Build->CMake->CMake options: ```-DCMAKE_TOOLCHAIN_FILE=C:\Users\<USERNAME>\.vcpkg-clion\vcpkg\scripts\buildsystems\vcpkg.cmake -DSPIR_CLANG_BIN="C:\Program Files\LLVM\bin\clang.exe" -DGPU_CUDA_SUPPORT=ON``` (или без ```-DGPU_CUDA_SUPPORT=ON```)
+
+7.3. **macOS** - вероятно что-то очень похожее на Linux, напишите если будут трудности
+
 8. ``make -j8``
-9. ``./enumDevices`` должно увидеть хотя бы одну OpenCL-платформу:
-
-```
-Number of OpenCL platforms: 1
-Platform #1/1
-    Platform name: 
-```
-
-Если же вы видите ошибку:
-```
-terminate called after throwing an instance of 'std::runtime_error'
-  what(): Can't init OpenCL driver!
-Aborted (Core dumped)
-```
-
-То попробуйте установить ```sudo apt install ocl-icd-libopencl1``` и выполнить ``./enumDevices`` снова.
-
-Если вы видите ошибку:
-```
-: CommandLine Error: Option 'polly' registered more than once!
-LLVM ERROR: inconsistency in registered CommandLine options
-```
-То, наоборот, может помочь удалить пакет ```sudo apt remove ocl-icd-libopencl1``` и попробовать выполнить ``./enumDevices`` снова.
-
-Если ``./enumDevices`` не показывает хотя бы одну платформу - создайте **Issue** с перечислением:
-
- - OS, процессор и видеокарта
- - Успешно ли прошла установка Intel-CPU драйвера
- - Какое было поведение до установки пакета ``ocl-icd-libopencl1`` и какое поведение стало после
- - Вывод ``./enumDevices``
+9. ``./libs/gpu/libgpu_test`` прогонит unit-test-ы покрывающие OpenCL и Vulkan
+10. ``./main_aplusb`` убедится что программа-пример работает корректно на OpenCL
+11. ``./main_aplusb_matrix`` убедится что программа-задание запускается и пока что не выполнена
 
 Задание
 =======
 
-0. Сделать fork проекта
-1. Прочитать все комментарии подряд и выполнить все **TODO** в файле ``src/main.cpp``. Для разработки под Linux рекомендуется использовать CLion. Под Windows рекомендуется использовать CLion+MSVC. Также под Windows можно использовать Visual Studio Community.
-2. Отправить **Pull-request** с названием ```Task00 <Имя> <Фамилия> <Аффиляция>```. **Аффиляция** - SPbU/HSE/ITMO.
-3. В тексте **PR** укажите вывод программы при исполнении на сервере Github CI (Github Actions) и на вашем компьютере (в **pre**-тэгах, чтобы сохранить форматирование, см. [пример](https://raw.githubusercontent.com/GPGPUCourse/GPGPUTasks2025/task00/.github/pull_request_example.md)). И ваш бранч должен называться так же, как и у меня - **task00**.
-4. Убедиться что Github CI (Github Actions) смог скомпилировать ваш код и что все хорошо, при отправке первого задания CI может не запуститься пока я вручную не нажму ```Approve``` - если я этого не сделал в течение суток - напомните мне пожалуйста в чате курса
-5. Ждать комментарии проверки
+0. Сделать fork проекта если еще не сделали
+1. Изучить ```src/main_aplusb.cpp``` и ```src/kernels/cl/aplusb.cl``` (если хочется использовать не OpenCL - изменить используемое API в main_aplusb.cpp - см. там **TODO**)
+2. Прочитать все комментарии подряд и выполнить все **TODO** в файле ``src/main_aplusb_matrix.cpp`` и реализовать два кернела (API на ваш выбор). Для разработки под Linux рекомендуется использовать CLion. Под Windows рекомендуется использовать CLion+MSVC. Также под Windows можно использовать Visual Studio Community.
+3. Отправить **Pull-request** с названием ```Task01 <Имя> <Фамилия> <Аффиляция>```. **Аффиляция** - ваш ВУЗ (например SPbU/ITMO или HSE) или ваше место работы. Мне интересно узнать кто откуда.
+4. В тексте **PR** укажите вывод программы при исполнении на сервере Github CI (Github Actions) и на вашем компьютере (в **pre**-тэгах, чтобы сохранить форматирование, см. [пример](https://raw.githubusercontent.com/GPGPUCourse/GPGPUTasks2025/task01/.github/pull_request_example.md)). И ваш бранч должен называться так же, как и у меня - **task01**.
+5. Убедиться что Github CI (Github Actions) смог скомпилировать ваш код и что все хорошо, при отправке первого задания CI может не запуститься пока я вручную не нажму ```Approve``` - если я этого не сделал в течение суток - напомните мне пожалуйста в чате курса
+6. Ждать комментарии проверки
 
-**Дедлайн**: 23:59 22 сентября. Но убедиться, что хотя бы одно OpenCL-устройство у вас обнаруживается, лучше как можно раньше, чтобы было больше времени на решение проблем если они возникнут (см. **Проверка окружения** выше).
+**Дедлайн**: 23:59 29 сентября. Но очень советую сделать в ближайшую неделю. Задание простое, если вы его будете откладывать - скорее-всего дальше будет снежный ком, т.к. в какой-то момент начнутся сложные задания. В целом в рамках курса будет много домашних заданий и будет тяжело.
 
 Как работать под Windows
 ========================
