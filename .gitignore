@@ -4,3 +4,11 @@
 build*
 cmake-build*
 .vs
+**/*_cl.h
+**/generated_kernels/*
+.idea
+build*
+cmake-build*
+.vs
+.vscode
+cmake_options.txt
