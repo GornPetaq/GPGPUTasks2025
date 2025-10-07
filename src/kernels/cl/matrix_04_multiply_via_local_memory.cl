@@ -41,13 +41,15 @@ matrix_04_multiply_via_local_memory(
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
+        float mid_res = 0;
+
         for (uint m = 0; m < 16; m++) {
             // fma (a_piece[16 * j + (m + j & mask)], b_piece[16 * m + (i + m & mask)],res_piece[16*j + i]); // bank conflict is better than sync extra time
-            res_piece[16 * j + i] =  fma(a_piece[16 * j + ((m + i & mask) + j & mask)], b_piece[16 * (m + i & mask) + (i + (m + i & mask) & mask)], res_piece[16 * j + i]); // this version has bank conflict 2
+            // res_piece[16 * j + i] =  fma(a_piece[16 * j + ((m + i & mask) + j & mask)], b_piece[16 * (m + i & mask) + (i + (m + i & mask) & mask)], res_piece[16 * j + i]); // this version has bank conflict 2
+            mid_res = fma(a_piece[16 * j + ((m + i & mask) + j & mask)], b_piece[16 * (m + i & mask) + (i + (m + i & mask) & mask)], mid_res); // this version has bank conflict 2
         }
-
+        res_piece[16 * j + i] += mid_res;
         // barrier(CLK_LOCAL_MEM_FENCE);
-        
 
         // if (grx == 0 && gry == 0 && l == 0) {
 
@@ -56,7 +58,7 @@ matrix_04_multiply_via_local_memory(
         //         printf("i,j: %u %u; a = %f\n", j, i, a_piece[16 * i + (i + j & mask)]);
 
         //     }
-            
+
         //     if (i == 0 && j == 0) {
         //         printf ( "res_piece: %f\n", res_piece[0]);
         //     }
