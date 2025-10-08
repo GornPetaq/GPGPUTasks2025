@@ -64,6 +64,7 @@ void run(int argc, char** argv)
     avk2::KernelSource vk_matrix05MultiplyCooperativeMatrix(avk2::getMatrix05MultiplyCooperativeMatrix());
 
     unsigned int ksize = 128;
+    // unsigned int ksize = 4;
     unsigned int w = ksize * 32;
     unsigned int k = ksize * 8;
     unsigned int h = ksize * 16;

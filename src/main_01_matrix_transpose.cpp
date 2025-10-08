@@ -36,6 +36,7 @@ void run(int argc, char** argv)
     avk2::KernelSource vk_matrix02TransposeCoalescedViaLocalMemory(avk2::getMatrix02TransposeCoalescedViaLocalMemory());
 
     unsigned int ksize = 512;
+    // unsigned int ksize = 32;
     unsigned int w = ksize * 32;
     unsigned int h = ksize * 16;
     std::cout << "Matrix size: rows=H=" << h << " x cols=W=" << w << " (" << sizeof(float) * w * h / 1024 / 1024 << " MB)" << std::endl;
