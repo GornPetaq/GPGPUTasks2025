@@ -49,6 +49,7 @@ matrix_04_multiply_via_local_memory(
             // mid_res = fma(a_piece[16 * j + ((m + i & mask) + j & mask)], b_piece[16 * (m + i & mask) + (i + (m + i & mask) & mask)], mid_res); // this version has bank conflict 2
             mid_res += a_piece[16 * j + ((m + i & mask) + j & mask)] * b_piece[16 * (m + i & mask) + (i + (m + i & mask) & mask)]; // this version has bank conflict 2
         }
+        
         res_piece[16 * j + i] += mid_res;
         // barrier(CLK_LOCAL_MEM_FENCE);
 
