@@ -122,7 +122,7 @@ void run(int argc, char** argv)
         int iters_count = (algorithm == "CPU with OpenMP") ? 1 : 10; // CPU is too slow
         for (int iter = 0; iter < iters_count; ++iter) {
         // for (int iter = 0; iter < 1; ++iter) {
-
+            matrix_c_gpu.fill(0);
             timer t;
 
             if (algorithm == "CPU with OpenMP") {
