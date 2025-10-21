@@ -93,10 +93,11 @@ void run(int argc, char** argv)
         if (context.type() == gpu::Context::TypeOpenCL) {
             // TODO
             // throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
-            ocl_fill_with_zeros.exec(gpu::WorkSize(256, n), buffer1_pow2_sum_gpu, n, input_gpu);
+            // ocl_fill_with_zeros.exec(gpu::WorkSize(256, n), buffer1_pow2_sum_gpu, n, input_gpu);
+            // std::cout << "dfx" << bufoffsets.size() << "\n";
 
             for (int i = 0; i < bufoffsets.size() - 2; i++) {
-                ocl_sum_reduction.exec(gpu::WorkSize(256, bufoffsets[i + 1] - bufoffsets[i]), buffer1_pow2_sum_gpu, bufoffsets[i], bufoffsets[i + 1]);
+                ocl_sum_reduction.exec(gpu::WorkSize(256, bufoffsets[i + 1] - bufoffsets[i]), buffer1_pow2_sum_gpu, bufoffsets[i], bufoffsets[i + 1], input_gpu);
             }
 
             ocl_prefix_accumulation.exec(gpu::WorkSize(256, n), buffer1_pow2_sum_gpu, n, prefix_sum_accum_gpu);

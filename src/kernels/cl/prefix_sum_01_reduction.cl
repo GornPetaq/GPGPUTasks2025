@@ -14,7 +14,8 @@ prefix_sum_01_reduction(
     // __global       uint* next_pow2_sum, // will contain (n+1)/2 values
     __global uint* buf, // will contain (n+1)/2 values
     uint start,
-    uint end
+    uint end,
+    __global const uint* inp // will contain (n+1)/2 values
     // unsigned int n
      )
 {
@@ -25,8 +26,9 @@ prefix_sum_01_reduction(
     __local uint prefixes[256];
     {
         uint val = 0;
-        if (active)
-            val = buf[start + i];
+        if (active){
+            if (start != 0) val = buf[start + i];
+            else val = inp[start + i];}
         prefixes[l] = val;
     }
 
