@@ -92,7 +92,7 @@ void run(int argc, char** argv)
 
     std::vector <int> sizes;
     std::vector <int> bufedges {0,};
-    const int sum_levels = 2;
+    const int sum_levels = 3;
     int tn = ((n - 1) / GROUP_SIZE + 1) * ( 1 << RADIX_SIZE) - 1;
     for (int i = 0; i < sum_levels; i++) {
         sizes.push_back(tn + 1);
@@ -159,7 +159,7 @@ void run(int argc, char** argv)
                     }
                     }
 
-                    std::cout << bufedges[1] << " "  << imed [bufedges[1]] << " sdhlaod\n";
+                    std::cout << bufedges[2] << " "  << imed [bufedges[2]] << " sdhlaod\n";
 
                     auto dbuf = debug_buf.readVector();
                     int totsum = 0;

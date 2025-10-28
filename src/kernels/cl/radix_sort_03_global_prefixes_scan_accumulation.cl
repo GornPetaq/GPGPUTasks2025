@@ -24,15 +24,27 @@ __kernel void radix_sort_03_global_prefixes_scan_accumulation(
     if (i < in_n) chunk[l] = in[in_start + i];
     else chunk[l] = 0;
 
-    barrier (CLK_LOCAL_MEM_FENCE);
+    // barrier (CLK_LOCAL_MEM_FENCE);
 
-    if (l == 0) {
-        uint res = 0 ;
-        for (int k = 0; k < GROUP_SIZE; k++) {
-            res += chunk[k];
+
+    // if (l == 0) {
+    //     uint res = 0;
+    //     for (int k = 0; k < GROUP_SIZE; k++) {
+    //         res += chunk[k];
+    //     }
+
+    //     out[out_start + g] = res;
+    // }
+
+    uint dl = GROUP_SIZE / 2;
+    while (dl > 0) {
+        barrier (CLK_LOCAL_MEM_FENCE);
+        if (l < dl * 2 && l >= dl) {
+            chunk[l - dl] += chunk[l];
         }
 
-        out[out_start + g] = res;
+        dl /= 2;
     }
 
+    if (l == 1)  out[out_start + g] = chunk[0];
 }

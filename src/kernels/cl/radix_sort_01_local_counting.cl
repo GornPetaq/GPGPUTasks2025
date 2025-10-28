@@ -24,7 +24,7 @@ __kernel void radix_sort_01_local_counting(
 
     uint sum = 0;
 
-    uint currsz = sz0 + 1;
+    uint currsz = sz0 - 1;
     uint offset = 0;
     uint curri = i + 1;
 
@@ -34,13 +34,13 @@ __kernel void radix_sort_01_local_counting(
         if (k != sum_levels - 1) {
             start = curri - (curri % GROUP_SIZE);
         }
-        // if (i == 255) {
+        // if (i == 65535) {
         //     printf ("summing from %d to %d, current offset is %d\n", offset + start, offset + end, offset); 
         // }
         for (uint j = start; j < end; j++) {sum += inp[offset + j];
         }
 
-        offset += currsz - 1;
+        offset += currsz + 1;
         currsz /= GROUP_SIZE;
         curri /= GROUP_SIZE;
     }
