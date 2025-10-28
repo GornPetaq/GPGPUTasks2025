@@ -92,7 +92,7 @@ void run(int argc, char** argv)
 
     std::vector <int> sizes;
     std::vector <int> bufedges {0,};
-    const int sum_levels = 3;
+    const int sum_levels = 4;
     int tn = ((n - 1) / GROUP_SIZE + 1) * ( 1 << RADIX_SIZE) - 1;
     for (int i = 0; i < sum_levels; i++) {
         sizes.push_back(tn + 1);
@@ -135,16 +135,25 @@ void run(int argc, char** argv)
             // }
 
             auto sort_radix = [&](gpu::gpu_mem_32u& input, gpu::gpu_mem_32u& intermed, gpu::gpu_mem_32u& output, unsigned radixid) {
-                ocl_radixSort02GlobalPrefixesScanSumReduction.exec(gpu::WorkSize(GROUP_SIZE, n), input, intermed, radixid, n);
+                // intermed.fill(1);
+                // auto start = t.elapsed();
+                ocl_radixSort02GlobalPrefixesScanSumReduction.exec(gpu::WorkSize(32, (n - 1) / (GROUP_SIZE / 32) + 1), input, intermed, radixid, n);
+                // auto p1 = t.elapsed();
+                
                 for (int i = 1; i < sum_levels; i++) {
                     ocl_radixSort03GlobalPrefixesScanAccumulation.exec (gpu::WorkSize(GROUP_SIZE, sizes[i - 1]), intermed, bufedges[i-1], intermed, bufedges[i], sizes[i - 1]);
                 }
-
+                // auto p2 = t.elapsed();
+                
                 ocl_radixSort01AccumulateToSingleBuf.exec(gpu::WorkSize(GROUP_SIZE, sizes[0]), intermed, debug_buf, sizes[0], sum_levels);
-
-
+                // auto p3 = t.elapsed();
+                
+                
+                
                 ocl_radixSort04Scatter.exec(gpu::WorkSize(GROUP_SIZE, n), input, intermed, output, radixid, n, sum_levels, debug_buf);
-
+                // auto p4 = t.elapsed();
+                
+                // std::cout << p1 - start << " "<< p2 - p1 << " "<< p3 - p2 << " "<< p4 - p3 << " times\n";
                 auto check_correct = [&]() -> void {
                     auto imed = intermed.readVector();
                     for (int k = 0; k < sum_levels - 1; k++) {
@@ -186,7 +195,7 @@ void run(int argc, char** argv)
             };
 
             sort_radix(input_gpu, buffer2_gpu, buffer1_gpu, 0);
-            for (int j = 1; j < (32 / RADIX_SIZE) - 1; j++) {
+            for (int j = 1; j < (31 / RADIX_SIZE + 1) - 1; j++) {
                 if (j % 2 == 1) {
                     sort_radix(buffer1_gpu, buffer2_gpu, buffer3_gpu, j);
                 } else {

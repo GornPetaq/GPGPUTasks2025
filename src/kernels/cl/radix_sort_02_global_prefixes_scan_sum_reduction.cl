@@ -5,7 +5,7 @@
 #include "helpers/rassert.cl"
 #include "../defines.h"
 
-__attribute__((reqd_work_group_size(GROUP_SIZE, 1, 1)))
+__attribute__((reqd_work_group_size(32, 1, 1)))
 __kernel void radix_sort_02_global_prefixes_scan_sum_reduction(
     // это лишь шаблон! смело меняйте аргументы и используемые буфера! можете сделать даже больше кернелов, если это вызовет затруднения - смело спрашивайте в чате
     // НЕ ПОДСТРАИВАЙТЕСЬ ПОД СИСТЕМУ! СВЕРНИТЕ С РЕЛЬС!! БУНТ!!! АНТИХАЙП!11!!1
@@ -20,8 +20,11 @@ __kernel void radix_sort_02_global_prefixes_scan_sum_reduction(
     uint res = 0;
     const uint num_bins = 1 << RADIX_SIZE;
     __local uint chunk [GROUP_SIZE];
-    if (i < n) chunk [l] = buffer1[i];
+
+    for (uint k = 0; k < GROUP_SIZE / 32; k++) {
+    if (g * (GROUP_SIZE) + l + k * 32 < n) chunk [l + k * 32] = buffer1[g * (GROUP_SIZE) + l + k * 32];
     else chunk[l] = ~0;
+    }
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
