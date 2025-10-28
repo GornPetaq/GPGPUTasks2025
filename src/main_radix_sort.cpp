@@ -1,8 +1,8 @@
 #include <libbase/stats.h>
 #include <libutils/misc.h>
 
-#include <libbase/timer.h>
 #include <libbase/fast_random.h>
+#include <libbase/timer.h>
 #include <libgpu/vulkan/engine.h>
 #include <libgpu/vulkan/tests/test_utils.h>
 
@@ -12,6 +12,7 @@
 #include "debug.h" // TODO очень советую использовать debug::prettyBits(...) для отладки
 
 #include <fstream>
+#include <iomanip>
 
 void run(int argc, char** argv)
 {
@@ -37,7 +38,7 @@ void run(int argc, char** argv)
     //          кроме того используемая библиотека поддерживает rassert-проверки (своеобразные инварианты с уникальным числом) на видеокарте для Vulkan
 
     ocl::KernelSource ocl_fillBufferWithZeros(ocl::getFillBufferWithZeros());
-    ocl::KernelSource ocl_radixSort01LocalCounting(ocl::getRadixSort01LocalCounting());
+    ocl::KernelSource ocl_radixSort01AccumulateToSingleBuf(ocl::getRadixSort01LocalCounting());
     ocl::KernelSource ocl_radixSort02GlobalPrefixesScanSumReduction(ocl::getRadixSort02GlobalPrefixesScanSumReduction());
     ocl::KernelSource ocl_radixSort03GlobalPrefixesScanAccumulation(ocl::getRadixSort03GlobalPrefixesScanAccumulation());
     ocl::KernelSource ocl_radixSort04Scatter(ocl::getRadixSort04Scatter());
@@ -50,7 +51,8 @@ void run(int argc, char** argv)
 
     FastRandom r;
 
-    int n = 100*1000*1000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
+    int n = 100 * 1000 * 1000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
+    // int n = 10000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
     int max_value = std::numeric_limits<int>::max(); // TODO при отладке используйте минимальное max_value (например max_value=8) при котором воспроизводится бага
     std::vector<unsigned int> as(n, 0);
     std::vector<unsigned int> sorted(n, 0);
@@ -87,7 +89,20 @@ void run(int argc, char** argv)
 
     // Аллоцируем буферы в VRAM
     gpu::gpu_mem_32u input_gpu(n);
-    gpu::gpu_mem_32u buffer1_gpu(n), buffer2_gpu(n), buffer3_gpu(n), buffer4_gpu(n); // TODO это просто шаблонка, можете переименовать эти буферы, сделать другого размера/типа, удалить часть, добавить новые
+
+    std::vector <int> sizes;
+    std::vector <int> bufedges {0,};
+    const int sum_levels = 2;
+    int tn = ((n - 1) / GROUP_SIZE + 1) * ( 1 << RADIX_SIZE) - 1;
+    for (int i = 0; i < sum_levels; i++) {
+        sizes.push_back(tn + 1);
+        tn /= GROUP_SIZE;
+        bufedges.push_back(bufedges.back() + sizes.back());
+    }
+
+    
+
+    gpu::gpu_mem_32u buffer1_gpu(n), buffer2_gpu(bufedges.back()), buffer3_gpu(n), debug_buf(n); // TODO это просто шаблонка, можете переименовать эти буферы, сделать другого размера/типа, удалить часть, добавить новые
     gpu::gpu_mem_32u buffer_output_gpu(n);
 
     // Прогружаем входные данные по PCI-E шине: CPU RAM -> GPU VRAM
@@ -98,7 +113,7 @@ void run(int argc, char** argv)
     buffer1_gpu.fill(255);
     buffer2_gpu.fill(255);
     buffer3_gpu.fill(255);
-    buffer4_gpu.fill(255);
+    debug_buf.fill(254);
     buffer_output_gpu.fill(255);
 
     // Запускаем кернел (несколько раз и с замером времени выполнения)
@@ -109,8 +124,85 @@ void run(int argc, char** argv)
         // Запускаем кернел, с указанием размера рабочего пространства и передачей всех аргументов
         // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
         if (context.type() == gpu::Context::TypeOpenCL) {
+
+            
             // TODO
-            throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
+            // if (iter == 1) {
+            //     for (auto i : input_gpu.readVector(n))
+            //         std::cout << std::hex << i << " ";
+            //     std::cout << "\n";
+            //     std::cout.flush();
+            // }
+
+            auto sort_radix = [&](gpu::gpu_mem_32u& input, gpu::gpu_mem_32u& intermed, gpu::gpu_mem_32u& output, unsigned radixid) {
+                ocl_radixSort02GlobalPrefixesScanSumReduction.exec(gpu::WorkSize(GROUP_SIZE, n), input, intermed, radixid, n);
+                for (int i = 1; i < sum_levels; i++) {
+                    ocl_radixSort03GlobalPrefixesScanAccumulation.exec (gpu::WorkSize(GROUP_SIZE, sizes[i - 1]), intermed, bufedges[i-1], intermed, bufedges[i], sizes[i - 1]);
+                }
+
+                ocl_radixSort01AccumulateToSingleBuf.exec(gpu::WorkSize(GROUP_SIZE, sizes[0]), intermed, debug_buf, sizes[0], sum_levels);
+
+
+                ocl_radixSort04Scatter.exec(gpu::WorkSize(GROUP_SIZE, n), input, intermed, output, radixid, n, sum_levels, debug_buf);
+
+                auto check_correct = [&]() -> void {
+                    auto imed = intermed.readVector();
+                    for (int k = 0; k < sum_levels - 1; k++) {
+                    for (int i = 0; i < sizes[k + 1]; i++) {
+                        int sum = 0;
+                        for (int j = 0; j < GROUP_SIZE && (i * GROUP_SIZE + j < sizes[k] ); j++) {
+                            sum += imed[bufedges[k] + i * GROUP_SIZE + j];
+                        }
+
+                        if (sum != imed[bufedges[k + 1] + i]) throw std::runtime_error (to_string("check_correct failed at radixid ") +
+                         to_string(radixid) + " k = " + to_string(k) + " i = " + to_string(i));
+                    }
+                    }
+
+                    std::cout << bufedges[1] << " "  << imed [bufedges[1]] << " sdhlaod\n";
+
+                    auto dbuf = debug_buf.readVector();
+                    int totsum = 0;
+                    for (int i = 0; i < sizes[0];i++) {
+                        totsum += imed[i];
+                        if (totsum != dbuf[i]) throw std::runtime_error (to_string("check_correct failed at radixid ") +
+                         to_string(radixid) + " totsum = " + to_string(totsum) + " i = " + to_string(i) + " dbuf[i] = " + to_string(dbuf[i]));
+                    }
+
+
+
+                };
+
+                // check_correct();
+
+                // if (iter == 1) {
+                //     std::cout << "radixid: "<<radixid << "\n";
+                // // auto res = intermed.readVector( ((n- 1) / GROUP_SIZE + 1) * ( 1 << RADIX_SIZE));
+                // auto res = output.readVector(n);
+                //     for (auto i : res)
+                //         std::cout << std::hex << i << " ";
+                //     std::cout << "\n";
+                // }
+            };
+
+            sort_radix(input_gpu, buffer2_gpu, buffer1_gpu, 0);
+            for (int j = 1; j < (32 / RADIX_SIZE) - 1; j++) {
+                if (j % 2 == 1) {
+                    sort_radix(buffer1_gpu, buffer2_gpu, buffer3_gpu, j);
+                } else {
+                    sort_radix(buffer3_gpu, buffer2_gpu, buffer1_gpu, j);
+                }
+            }
+
+            if (int j = (32 / RADIX_SIZE) - 1; j % 2 == 1) {
+                sort_radix(buffer1_gpu, buffer2_gpu, buffer_output_gpu, j);
+            } else {
+                sort_radix(buffer3_gpu, buffer2_gpu, buffer_output_gpu, j);
+            }
+
+            // assume j is odd at the end
+
+            // throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
             // ocl_fillBufferWithZeros.exec();
             // ocl_radixSort01LocalCounting.exec();
             // ocl_radixSort02GlobalPrefixesScanSumReduction.exec();
@@ -168,7 +260,8 @@ int main(int argc, char** argv)
         if (e.what() == DEVICE_NOT_SUPPORT_API) {
             // Возвращаем exit code = 0 чтобы на CI не было красного крестика о неуспешном запуске из-за выбора CUDA API (его нет на процессоре - т.е. в случае CI на GitHub Actions)
             return 0;
-        } if (e.what() == CODE_IS_NOT_IMPLEMENTED) {
+        }
+        if (e.what() == CODE_IS_NOT_IMPLEMENTED) {
             // Возвращаем exit code = 0 чтобы на CI не было красного крестика о неуспешном запуске из-за того что задание еще не выполнено
             return 0;
         } else {
