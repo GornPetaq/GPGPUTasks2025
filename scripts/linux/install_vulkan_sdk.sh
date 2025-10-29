@@ -36,36 +36,36 @@ wget https://github.com/google/shaderc/archive/v2025.4.zip
 
 echo "Installing googletest"
 unzip release-${googletest_version}.zip
-# rm release-${googletest_version}.zip
+rm release-${googletest_version}.zip
 pushd googletest-release-${googletest_version}
 mkdir releasebuild
 cd releasebuild
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=${install_prefix} ..
 make -j${njobs} install
 popd
-# rm -rf googletest-release-${googletest_version}
+rm -rf googletest-release-${googletest_version}
 
 echo "Installing Vulkan Headers"
 unzip Vulkan-Headers-${vulkan_headers_version}.zip
-# rm Vulkan-Headers-${vulkan_headers_version}.zip
+rm Vulkan-Headers-${vulkan_headers_version}.zip
 cd Vulkan-Headers-${vulkan_headers_version}
 mkdir releasebuild
 cd releasebuild
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${install_prefix} ..
 make -j$njobs install
 cd ../..
-# rm -rf Vulkan-Headers-${vulkan_headers_version}
+rm -rf Vulkan-Headers-${vulkan_headers_version}
 
 echo "Installing Vulkan Loader"
 unzip Vulkan-Loader-${vulkan_loader_version}.zip
-# rm Vulkan-Loader-${vulkan_loader_version}.zip
+rm Vulkan-Loader-${vulkan_loader_version}.zip
 cd Vulkan-Loader-${vulkan_loader_version}
 mkdir releasebuild
 cd releasebuild
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${install_prefix} -DVULKAN_HEADERS_INSTALL_DIR=${install_prefix} ..
 make -j$njobs install
 cd ../..
-# rm -rf Vulkan-Loader-${vulkan_loader_version}
+rm -rf Vulkan-Loader-${vulkan_loader_version}
 
 mkdir ${install_prefix}/include/vma
 mv vk_mem_alloc.h ${install_prefix}/include/vma/vk_mem_alloc.h
@@ -89,7 +89,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DSHADERC_SKIP_TESTS=TRUE
 make -j${njobs}
 cp glslc/glslc /usr/bin/
 cd ../..
-# rm -rf shaderc-2025.4
+rm -rf shaderc-2025.4
 
 if [ "$SKIP_VALIDATION_LAYERS" -eq 0 ]; then
   echo "Installing Vulkan Validation Layers"
@@ -110,19 +110,19 @@ if [ "$SKIP_VALIDATION_LAYERS" -eq 0 ]; then
   make -j$njobs install
   cp ${install_prefix}/lib/libVkLayer_khronos_validation.so /usr/lib/
   cd ../..
-  # rm Vulkan-ValidationLayers-${vulkan_validation_layers_version}.zip
-  # rm -rf Vulkan-ValidationLayers-${vulkan_validation_layers_version}
+  rm Vulkan-ValidationLayers-${vulkan_validation_layers_version}.zip
+  rm -rf Vulkan-ValidationLayers-${vulkan_validation_layers_version}
 else
   echo "Skipping Vulkan Validation Layers (--no-validation-layers)"
 fi
 
 echo "Installing Vulkan SPIRV Reflect"
 unzip SPIRV-Reflect-${vulkan_spirv_reflect_version}.zip
-# rm SPIRV-Reflect-${vulkan_spirv_reflect_version}.zip
+rm SPIRV-Reflect-${vulkan_spirv_reflect_version}.zip
 cd SPIRV-Reflect-vulkan-sdk-${vulkan_spirv_reflect_version}.0
 mkdir releasebuild
 cd releasebuild
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${install_prefix} ..
 make -j$njobs install
 cd ../..
-# rm -rf SPIRV-Reflect-vulkan-sdk-${vulkan_spirv_reflect_version}.0
+rm -rf SPIRV-Reflect-vulkan-sdk-${vulkan_spirv_reflect_version}.0
