@@ -1,0 +1,3 @@
+cmake .. -G 'Visual Studio 17 2022' -DCMAKE_TOOLCHAIN_FILE="C:\VCPKG\vcpkg\scripts\buildsystems\vcpkg.cmake" -DSPIR_CLANG_BIN="C:\Program Files\LLVM\bin\clang.exe"
+cmake .. -G 'Visual Studio 17 2022' -DCMAKE_TOOLCHAIN_FILE="C:\VCPKG\vcpkg\scripts\buildsystems\vcpkg.cmake" -DSPIR_CLANG_BIN="C:\Program Files\LLVM\bin\clang.exe" -DCUDA_SUPPORT=OFF -DGLSLC_BIN=C:\VulkanSDK\1.4.321.1\Bin\glslc.exe -DCMAKE_PREFIX_PATH="C:\VulkanSDK\1.4.321.1"
+cmake .. -G 'Visual Studio 17 2022' -DCMAKE_TOOLCHAIN_FILE="C:\VCPKG\vcpkg\scripts\buildsystems\vcpkg.cmake" -DSPIR_CLANG_BIN="C:\Program Files\LLVM\bin\clang.exe" -DGLSLC_BIN=C:\VulkanSDK\1.4.321.1\Bin\glslc.exe -DCMAKE_PREFIX_PATH="C:\VulkanSDK\1.4.321.1"
