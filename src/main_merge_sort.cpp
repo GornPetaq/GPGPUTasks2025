@@ -1,8 +1,8 @@
 #include <libbase/stats.h>
 #include <libutils/misc.h>
 
-#include <libbase/timer.h>
 #include <libbase/fast_random.h>
+#include <libbase/timer.h>
 #include <libgpu/vulkan/engine.h>
 #include <libgpu/vulkan/tests/test_utils.h>
 
@@ -40,7 +40,8 @@ void run(int argc, char** argv)
 
     FastRandom r;
 
-    int n = 100*1000*1000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
+    int n = 100 * 1000 * 1000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
+    // int n = 10000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
     int min_value = 1; // это сделано для упрощения, чтобы существовало очевидное -INFINITY значение
     int max_value = std::numeric_limits<int>::max() - 1; // TODO при отладке используйте минимальное max_value (например max_value=8) при котором воспроизводится бага
     std::vector<unsigned int> as(n, 0);
@@ -99,7 +100,29 @@ void run(int argc, char** argv)
         // Если хотите - можете удалить ветвление здесь и оставить только тот код который соответствует вашему выбору API
         if (context.type() == gpu::Context::TypeOpenCL) {
             // TODO
-            throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
+            // throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
+            if (n == 1) {
+                input_gpu.copyTo(buffer_output_gpu, 1);
+            }
+
+            else {
+
+                unsigned int already_sorted_size = 1;
+                ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), input_gpu, buffer1_gpu, already_sorted_size, n);
+                already_sorted_size *= 2;
+
+                gpu::gpu_mem_32u *bin = &buffer1_gpu, *bout = &buffer2_gpu;
+                while (already_sorted_size * 2 < n) {
+                    ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), *bin, *bout, already_sorted_size, n);
+                    already_sorted_size *= 2;
+                    
+                    std::swap(bin, bout);
+                }
+                
+                ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), *bin, buffer_output_gpu, already_sorted_size, n);
+
+            }
+
         } else if (context.type() == gpu::Context::TypeCUDA) {
             // TODO
             throw std::runtime_error(CODE_IS_NOT_IMPLEMENTED);
@@ -142,7 +165,8 @@ int main(int argc, char** argv)
         if (e.what() == DEVICE_NOT_SUPPORT_API) {
             // Возвращаем exit code = 0 чтобы на CI не было красного крестика о неуспешном запуске из-за выбора CUDA API (его нет на процессоре - т.е. в случае CI на GitHub Actions)
             return 0;
-        } if (e.what() == CODE_IS_NOT_IMPLEMENTED) {
+        }
+        if (e.what() == CODE_IS_NOT_IMPLEMENTED) {
             // Возвращаем exit code = 0 чтобы на CI не было красного крестика о неуспешном запуске из-за того что задание еще не выполнено
             return 0;
         } else {
