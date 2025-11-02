@@ -10,6 +10,11 @@
 #include "kernels/kernels.h"
 
 #include <fstream>
+#include <iomanip>
+
+#define VOUT(v) for (auto& d: (v)) std::cout << std::hex << d << "; "; std::cout << "\n";
+
+#define VOUTN(v, n) {auto zxc = (v); for (int i = zxc.size() - n; i < zxc.size(); i++) std::cout << std::dec << i << " " << std::hex << zxc[i] << "; "; std::cout << "\n";}
 
 void run(int argc, char** argv)
 {
@@ -42,7 +47,9 @@ void run(int argc, char** argv)
     FastRandom r;
 
     int n = 100 * 1000 * 1000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
-    // int n = 10000; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
+    // int n = 10300; // TODO при отладке используйте минимальное n (например n=5 или n=10) при котором воспроизводится бага
+    // std::cin >> n;
+
     int min_value = 1; // это сделано для упрощения, чтобы существовало очевидное -INFINITY значение
     int max_value = std::numeric_limits<int>::max() - 1; // TODO при отладке используйте минимальное max_value (например max_value=8) при котором воспроизводится бага
     std::vector<unsigned int> as(n, 0);
@@ -123,12 +130,21 @@ void run(int argc, char** argv)
                 gpu::gpu_mem_32u *bin = &buffer1_gpu, *bout = &buffer2_gpu;
                 while (already_sorted_size * 2 < n) {
                     ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, nup), *bin, *bout, already_sorted_size, nup, 0);
+
+                    // if (already_sorted_size == 256) return;
                     already_sorted_size *= 2;
+
+                    // VOUTN (bin->readVector(), 100);
+                    // VOUTN (bout->readVector(), 100);
                     
                     std::swap(bin, bout);
                 }
                 
-                ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), *bin, buffer_output_gpu, already_sorted_size, n, 1);
+                // VOUT (bin->readVector());
+
+
+                ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, nup), *bin, buffer_output_gpu, already_sorted_size, n, 1);
+                // VOUT (buffer_output_gpu.readVector());
 
             }
 

@@ -19,10 +19,16 @@ merge_sort(
 
     bool active = i < n;
 
+    int nup = ((n - 1) / GROUP_SIZE + 1) * GROUP_SIZE;
+
+    // if (i == 0)
+    // printf ("n = %d, nup = %d\n", n, nup);
+
     // if (i >= n)
     //     return;
 
     uint my_num = input_data[i];
+    // if (my_num == 0xff) printf ("wtf");
 
     int left = i & (~(already_sorted * 2 - 1));
     // int right = left + 2 * already_sorted;
@@ -31,22 +37,48 @@ merge_sort(
     //     printf ("launch type = %d, already_sorted = %d, n = %d, left + 2*as = %d\n", launch_type,already_sorted, n, left + 2 * already_sorted );
     // }
 
-    int right = min(left + 2 * already_sorted, n);
+    int right = min(left + 2 * already_sorted, nup);
     // int mid = left + already_sorted;
-    int mid = min(left + already_sorted, n);
+    int mid = min(left + already_sorted, nup);
 
-    __local uint reference_values[GROUP_SIZE];
-    const int delta = already_sorted * 2 / GROUP_SIZE;
-    // if (l != 0) {
-        reference_values[l] = input_data[left + delta * (l + 1) - 1];
-    // }
-
-    barrier (CLK_LOCAL_MEM_FENCE);
+    if (mid == right) {
+        output_data[i] = my_num;
+        return;
+    }
 
     bool is_from_left = i < mid;
 
-    int s_left = (is_from_left ? mid : left) - 1;
-    int s_right = is_from_left ? right : mid;
+    int glob_left = (is_from_left ? mid : left);
+    int glob_right = is_from_left ? right : mid;
+
+    // int loc_left = glob_left;
+
+    __local uint reference_values[GROUP_SIZE];
+    const int delta = (glob_right - glob_left) / GROUP_SIZE;
+
+    reference_values[l] = input_data[glob_left + delta * (l + 1) - 1];
+    // printf ("idx = %d, i = %d, mid = %d, right = %d\n", glob_left + delta * (l + 1) - 1, i, mid, right);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    int i_left = -1;
+    int i_right = GROUP_SIZE;
+
+    while (i_right > i_left + 1) {
+        int i_mid = (i_left + i_right) / 2;
+
+        uint v_mid = reference_values[i_mid];
+        bool is_less = is_from_left ? (my_num > v_mid) : (my_num >= v_mid);
+
+        if (is_less) {
+            i_left = i_mid;
+        } else
+            i_right = i_mid;
+    }
+
+    int s_left = glob_left + delta * (i_left + 1) - 1;
+    int s_right = min (glob_left + delta * (i_right + 1) - 1, glob_right);
+    // int s_left = glob_left - 1;
+    // int s_right = glob_right;
 
     while (s_right > s_left + 1) {
         int s_mid = (s_left + s_right) / 2;
@@ -76,11 +108,13 @@ merge_sort(
     }
 
     int idx = (i + s_right - mid);
+    // if (i == nup - 1)
+    // printf ("%d\n",idx);
 
     if (launch_type == 0 || active)
         output_data[idx] = my_num;
 
-    // if (i == 0 && already_sorted == 1) {
+    // if (i == 8056) {
     //     printf("i = %d, v = %d, oi = %d, is_from_left = %d, ast = %d\n", i, my_num, idx, is_from_left, already_sorted);
     // }
 
