@@ -81,9 +81,9 @@ void run(int argc, char** argv)
     // Аллоцируем буферы в VRAM
     gpu::gpu_mem_32u input_gpu(n);
 
-    // int nup = ((n - 1) / GROUP_SIZE  + 1) * GROUP_SIZE;
-    // gpu::gpu_mem_32u buffer1_gpu(nup), buffer2_gpu(nup); // TODO это просто шаблонка, можете переименовать эти буферы, сделать другого размера/типа, удалить часть, добавить новые
-    gpu::gpu_mem_32u buffer1_gpu(n), buffer2_gpu(n); // TODO это просто шаблонка, можете переименовать эти буферы, сделать другого размера/типа, удалить часть, добавить новые
+    int nup = ((n - 1) / GROUP_SIZE  + 1) * GROUP_SIZE;
+    gpu::gpu_mem_32u buffer1_gpu(nup), buffer2_gpu(nup); // TODO это просто шаблонка, можете переименовать эти буферы, сделать другого размера/типа, удалить часть, добавить новые
+    // gpu::gpu_mem_32u buffer1_gpu(n), buffer2_gpu(n); // TODO это просто шаблонка, можете переименовать эти буферы, сделать другого размера/типа, удалить часть, добавить новые
     gpu::gpu_mem_32u buffer_output_gpu(n);
 
     // Прогружаем входные данные по PCI-E шине: CPU RAM -> GPU VRAM
@@ -122,13 +122,13 @@ void run(int argc, char** argv)
 
                 gpu::gpu_mem_32u *bin = &buffer1_gpu, *bout = &buffer2_gpu;
                 while (already_sorted_size * 2 < n) {
-                    ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), *bin, *bout, already_sorted_size, n);
+                    ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, nup), *bin, *bout, already_sorted_size, nup, 0);
                     already_sorted_size *= 2;
                     
                     std::swap(bin, bout);
                 }
                 
-                ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), *bin, buffer_output_gpu, already_sorted_size, n);
+                ocl_mergeSort.exec(gpu::WorkSize(GROUP_SIZE, n), *bin, buffer_output_gpu, already_sorted_size, n, 1);
 
             }
 

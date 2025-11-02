@@ -76,11 +76,11 @@ select_sort(
     //     }
     // }
 
-    if (i < n) {
+    // if (i < n) {
         // if (g == 1) {
         //     printf("g * GROUP_SIZE + before_me = %d, my_val = %d\n", g * GROUP_SIZE + before_me, my_val);
         // }
         // output_data[g * GROUP_SIZE + before_me] = my_val;
         output_data[i] = chunk[l];
-    }
+    // }
 }
