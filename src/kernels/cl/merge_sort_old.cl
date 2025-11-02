@@ -7,20 +7,16 @@
 
 __attribute__((reqd_work_group_size(GROUP_SIZE, 1, 1)))
 __kernel void
-merge_sort(
+merge_sort_old(
     __global const uint* input_data,
     __global uint* output_data,
     int already_sorted,
     int n)
 {
     const unsigned int i = get_global_id(0);
-    const unsigned int l = get_local_id(0);
-
-    // bool active = i < n;
 
     if (i >= n)
         return;
-
 
     uint my_num = input_data[i];
 
@@ -39,9 +35,9 @@ merge_sort(
         //     printf("s_left = %d, s_right = %d, s_mid = %d\n", s_left, s_right, s_mid);
         // }
         uint v_mid = input_data[s_mid];
-        bool is_less = is_from_left ? (my_num > v_mid) : (my_num >= v_mid);
+        bool is_less = is_from_left ? (my_num < v_mid) : (my_num <= v_mid);
 
-        if (is_less) {
+        if (!is_less) {
             s_left = s_mid;
         } else
             s_right = s_mid;
